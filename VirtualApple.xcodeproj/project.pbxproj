@@ -20,6 +20,7 @@
 		49F82D48274A0CC5004D986D /* WindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49F82D47274A0CC5004D986D /* WindowController.swift */; };
 		49F82D4C274A0D98004D986D /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49F82D4B274A0D98004D986D /* ViewController.swift */; };
 		49F82D4E274A21C5004D986D /* ConfigurationViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49F82D4D274A21C5004D986D /* ConfigurationViewController.swift */; };
+		51E790B42A87734900D90D8B /* Swizzling.m in Sources */ = {isa = PBXBuildFile; fileRef = 51E790B32A87734900D90D8B /* Swizzling.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +45,8 @@
 		49F82D47274A0CC5004D986D /* WindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowController.swift; sourceTree = "<group>"; };
 		49F82D4B274A0D98004D986D /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		49F82D4D274A21C5004D986D /* ConfigurationViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationViewController.swift; sourceTree = "<group>"; };
+		51E790B22A87734800D90D8B /* VirtualApple-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "VirtualApple-Bridging-Header.h"; sourceTree = "<group>"; };
+		51E790B32A87734900D90D8B /* Swizzling.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Swizzling.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +92,7 @@
 				49D08704274BBE2A00859181 /* Toolbar.swift */,
 				49F82D4B274A0D98004D986D /* ViewController.swift */,
 				49F82D45274A0609004D986D /* VirtualMachine.swift */,
+				51E790B32A87734900D90D8B /* Swizzling.m */,
 				49F82D47274A0CC5004D986D /* WindowController.swift */,
 				493244042749D9F1003E8999 /* Assets.xcassets */,
 				49D086FB274BBA3700859181 /* Debug.xcconfig */,
@@ -96,6 +100,7 @@
 				49D086FE274BBA8400859181 /* Release.xcconfig */,
 				49D086FC274BBA4A00859181 /* Shared.xcconfig */,
 				49D086FF274BBA9C00859181 /* VirtualApple.xcconfig */,
+				51E790B22A87734800D90D8B /* VirtualApple-Bridging-Header.h */,
 			);
 			path = VirtualApple;
 			sourceTree = "<group>";
@@ -132,6 +137,7 @@
 				TargetAttributes = {
 					493243FA2749D9F0003E8999 = {
 						CreatedOnToolsVersion = 13.2;
+						LastSwiftMigration = 1430;
 					};
 				};
 			};
@@ -180,6 +186,7 @@
 				49F82D48274A0CC5004D986D /* WindowController.swift in Sources */,
 				49D08705274BBE2A00859181 /* Toolbar.swift in Sources */,
 				49F82D46274A0609004D986D /* VirtualMachine.swift in Sources */,
+				51E790B42A87734900D90D8B /* Swizzling.m in Sources */,
 				493243FF2749D9F0003E8999 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -205,6 +212,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 49D086FF274BBA9C00859181 /* VirtualApple.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "VirtualApple/VirtualApple-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -212,6 +223,9 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 49D086FF274BBA9C00859181 /* VirtualApple.xcconfig */;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "VirtualApple/VirtualApple-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};

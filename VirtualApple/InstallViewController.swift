@@ -6,12 +6,15 @@
 //
 
 import Cocoa
+import Virtualization
 
 @MainActor
 class InstallViewController: NSViewController, NSTextFieldDelegate {
 	var virtualMachine: VirtualMachine!
 	var ipswPathControl: NSPathControl!
 	var diskSizeTextField: NSTextField!
+	var ecidTextField: NSTextField!
+	var serialNumberTextField: NSTextField!
 	var installButton: NSButton!
 	var installProgressIndicator: NSProgressIndicator!
 	var installing = false
@@ -40,7 +43,22 @@ class InstallViewController: NSViewController, NSTextFieldDelegate {
 		let diskSizeStackView = NSStackView(fixedSizeViews: [diskSizeLabel, diskSizeTextField, diskSizeGBLabel])
 		diskSizeStackView.alignment = .firstBaseline
 
-		let installStackView = NSStackView(views: [ipswStackView, diskSizeStackView])
+		let ecidLabel: NSTextField = NSTextField(labelWithString: "ECID:")
+		ecidTextField = NSTextField()
+		ecidTextField.placeholderString = "Optional"
+		ecidTextField.delegate = self
+		let ecidStackView = NSStackView(fixedSizeViews: [ecidLabel, ecidTextField])
+		ecidStackView.alignment = .firstBaseline
+
+		let serialNumberLabel = NSTextField(labelWithString: "Serial Number:")
+		serialNumberTextField = NSTextField()
+        serialNumberTextField.placeholderString = "Optional"
+		serialNumberTextField.delegate = self
+		let serialNumberStackView = NSStackView(fixedSizeViews: [serialNumberLabel, serialNumberTextField])
+		serialNumberStackView.alignment = .firstBaseline
+
+		let installStackView = NSStackView(views: [ipswStackView, diskSizeStackView, ecidStackView,
+                                                   serialNumberStackView])
 		installStackView.orientation = .vertical
 		installStackView.fitContents()
 		view.addSubview(installStackView)
@@ -66,9 +84,13 @@ class InstallViewController: NSViewController, NSTextFieldDelegate {
 			installStackView.leadingAnchor.constraint(equalToSystemSpacingAfter: view.leadingAnchor, multiplier: 1),
 			view.trailingAnchor.constraint(equalToSystemSpacingAfter: installStackView.trailingAnchor, multiplier: 1),
 			installStackView.topAnchor.constraint(equalToSystemSpacingBelow: view.topAnchor, multiplier: 1),
+			ecidLabel.trailingAnchor.constraint(equalTo: serialNumberLabel.trailingAnchor),
+			diskSizeLabel.trailingAnchor.constraint(equalTo: ecidLabel.trailingAnchor),
 			ipswLabel.trailingAnchor.constraint(equalTo: diskSizeLabel.trailingAnchor),
 			ipswPathControl.widthAnchor.constraint(equalToConstant: 240),
 			diskSizeTextField.widthAnchor.constraint(equalToConstant: 64),
+			ecidTextField.widthAnchor.constraint(equalToConstant: 240),
+			serialNumberTextField.widthAnchor.constraint(equalToConstant: 128),
 			cancelButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 64),
 			installButton.leadingAnchor.constraint(equalToSystemSpacingAfter: cancelButton.trailingAnchor, multiplier: 1),
 			cancelButton.firstBaselineAnchor.constraint(equalTo: installButton.firstBaselineAnchor),
@@ -88,12 +110,26 @@ class InstallViewController: NSViewController, NSTextFieldDelegate {
 
 	func validateUI() {
 		installButton.title = installing ? "Installing…" : "Install"
-		installButton.isEnabled = !installing && ipswPathControl.url != nil && Int(diskSizeTextField.stringValue) != nil
+		var isValidSerial = true
+		if serialNumberTextField.stringValue != "" {
+            let serialNumber = unsafeBitCast(NSClassFromString("_VZMacSerialNumber")!, to: _VZMacSerialNumber.Type.self).init(string: serialNumberTextField.stringValue)
+			isValidSerial = serialNumber != nil
+		}
+		var isValidECID = true
+        if isValidECID && ecidTextField.stringValue != "" {
+			// I should check properly, but whatever
+            isValidECID = UInt(ecidTextField.stringValue) != nil && unsafeBitCast(NSClassFromString("VZMacMachineIdentifier")!, to: _VZMacMachineIdentifier.Type.self)._machineIdentifier(ECID: UInt(ecidTextField.stringValue)!, serialNumber: unsafeBitCast(NSClassFromString("_VZMacSerialNumber")!, to: _VZMacSerialNumber.Type.self).init(string: "AAAAAAAAAA")) != nil
+		}
+        installButton.isEnabled = !installing && ipswPathControl.url != nil && Int(diskSizeTextField.stringValue) != nil && isValidSerial && isValidECID
 		installProgressIndicator.isHidden = !installing
 		ipswPathControl.isEditable = !installing
 		ipswPathControl.isEnabled = !installing
 		diskSizeTextField.isEditable = !installing
 		diskSizeTextField.isEnabled = !installing
+		ecidTextField.isEditable = !installing
+		ecidTextField.isEnabled = !installing
+		serialNumberTextField.isEditable = !installing
+		serialNumberTextField.isEnabled = !installing
 	}
 
 	@IBAction func controlTextDidChange(_ obj: Notification) {
@@ -119,7 +155,7 @@ class InstallViewController: NSViewController, NSTextFieldDelegate {
 		}
 		Task {
 			let result = await Task {
-				try await virtualMachine.install(ipsw: ipswPathControl.url!, diskSize: Int(diskSizeTextField.stringValue)!)
+				try await virtualMachine.install(ipsw: ipswPathControl.url!, diskSize: Int(diskSizeTextField.stringValue)!, ECID: UInt(ecidTextField.stringValue) ?? 0, serialNumber: serialNumberTextField.stringValue)
 				progressTask.cancel()
 				(view.window!.sheetParent!.windowController as! WindowController).dismiss(self)
 			}.result

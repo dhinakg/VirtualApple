@@ -16,6 +16,42 @@ import Virtualization
 	var _debugStub: _VZGDBDebugStubConfiguration { get @objc(_setDebugStub:) set }
 }
 
+@objc protocol _VZMacSerialNumber {
+	init(string: String)
+	func string() -> String
+}
+
+@objc protocol _VZMacMachineIdentifier {
+	static func _machineIdentifier(serialNumber: _VZMacSerialNumber) -> _VZMacMachineIdentifier
+	static func _machineIdentifier(ECID: UInt, serialNumber: _VZMacSerialNumber?) -> _VZMacMachineIdentifier
+}
+
+
+@objcMembers
+class FakeSerialNumber: NSObject, NSCopying, _VZMacSerialNumber {
+    public let serialNumber: String
+
+    required init(string: String) {
+        self.serialNumber = string
+    }
+
+    func string() -> String {
+		return serialNumber
+	}
+
+	override func isEqual(_ object: Any?) -> Bool {
+		if let other = object as? FakeSerialNumber {
+			return serialNumber == other.serialNumber
+		}
+		return false
+	}
+
+	func copy(with zone: NSZone? = nil) -> Any {
+		return FakeSerialNumber(string: serialNumber)
+	}
+}
+
+
 @objc protocol _VZVirtualMachine {
 	@available(macOS, obsoleted: 13)
 	@objc(_startWithOptions:completionHandler:)
@@ -94,7 +130,7 @@ class VirtualMachine: NSObject, VZVirtualMachineDelegate {
 		}
 	}
 
-	func install(ipsw: URL, diskSize: Int) async throws {
+	func install(ipsw: URL, diskSize: Int, ECID: UInt, serialNumber: String) async throws {
 		FileManager.default.createFile(atPath: url.appendingPathComponent("disk.img").path, contents: nil)
 		let handle = try FileHandle(forWritingTo: url.appendingPathComponent("disk.img"))
 		try handle.truncate(atOffset: UInt64(diskSize) << 30)
@@ -102,7 +138,20 @@ class VirtualMachine: NSObject, VZVirtualMachineDelegate {
 		let image = try await VZMacOSRestoreImage.image(from: ipsw)
 		hardwareModel = image.mostFeaturefulSupportedConfiguration!.hardwareModel
 		metadata.hardwareModel = hardwareModel.dataRepresentation
-		machineIdentifier = VZMacMachineIdentifier()
+		if (serialNumber == "" && ECID == 0) {
+			machineIdentifier = VZMacMachineIdentifier()
+		} else {
+			let machineIdentifierType = unsafeBitCast(NSClassFromString("VZMacMachineIdentifier")!, to: _VZMacMachineIdentifier.Type.self)
+			let _serialNumber = serialNumber == "" ? nil : unsafeBitCast(NSClassFromString("_VZMacSerialNumber")!, to: _VZMacSerialNumber.Type.self).init(string: serialNumber)
+            var _machineIdentifier: _VZMacMachineIdentifier? = nil
+			if (ECID != 0) {
+				_machineIdentifier = machineIdentifierType._machineIdentifier(ECID: ECID, serialNumber: _serialNumber)
+			} else {
+				_machineIdentifier = machineIdentifierType._machineIdentifier(serialNumber: _serialNumber!)
+			}
+            // let _machineIdentifier = unsafeBitCast(NSClassFromString("VZMacMachineIdentifier")!, to: _VZMacMachineIdentifier.Type.self)._machineIdentifier(serialNumber: FakeSerialNumber(string: "BBBBBBBBBBBB"))
+			machineIdentifier = unsafeBitCast(_machineIdentifier!, to: VZMacMachineIdentifier.self)
+		}
 		metadata.machineIdentifier = machineIdentifier.dataRepresentation
 		try setupVirtualMachine()
 		let installer = VZMacOSInstaller(virtualMachine: virtualMachine, restoringFromImageAt: image.url)
