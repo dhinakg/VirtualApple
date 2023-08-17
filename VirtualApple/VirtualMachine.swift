@@ -16,14 +16,69 @@ import Virtualization
 	var _debugStub: _VZGDBDebugStubConfiguration { get @objc(_setDebugStub:) set }
 }
 
+/*
+0x00228100240 _VZMacSerialNumber : NSObject <NSCopying>
+{
+	+0x0008 {AvpSerialNumber="_serial_number"{array<unsigned char, 10UL>="__elems_"[10C]}} _serialNumber (0xa) // _VZMacSerialNumber
+}
+ @property (readonly, copy) NSString *string
+
+  // instance methods
+  0x001f6622664 -(id)copyWithZone:(id)arg1 
+  0x001f6622b30 -(BOOL)isEqual:(id)arg1 
+  0x001f6622bf8 -(id)string
+  0x001f6622c98 -(id)initWithString:(id)arg1 
+*/
+
 @objc protocol _VZMacSerialNumber {
 	init(string: String)
 	func string() -> String
 }
 
+/*
+0x00228100218 VZMacMachineIdentifier : NSObject <_VZVirtualMachineConfigurationEncodable, NSCopying>
+{
+	+0x0008 Q _ECID (0x8) // VZMacMachineIdentifier
+	+0x0010 B _disableECIDChecks (0x1) // VZMacMachineIdentifier
+	+0x0018 @"_VZMacSerialNumber" _serialNumber (0x8) // VZMacMachineIdentifier
+}
+ @property (readonly) unsigned long _ECID
+ @property (readonly) _VZMacSerialNumber *_serialNumber
+ @property (readonly) BOOL _ECIDChecksDisabled
+ @property (readonly, copy) NSData *dataRepresentation
+ @property (readonly) unsigned long hash
+ @property (readonly) Class superclass
+ @property (readonly, copy) NSString *description
+ @property (readonly, copy) NSString *debugDescription
+
+  // class methods
+  0x001f6658aa4 +(id)_machineIdentifierForVirtualMachineClone
+  0x001f66588a0 +(id)_machineIdentifierForVirtualMachineCloneWithECID:(id)arg1 serialNumber:(SEL)arg2 
+  0x001f66589a0 +(id)_machineIdentifierForVirtualMachineCloneWithSerialNumber:(id)arg1 
+  0x001f6658b60 +(id)_machineIdentifierWithECID:(id)arg1 serialNumber:(SEL)arg2 
+  0x001f6658c5c +(id)_machineIdentifierWithSerialNumber:(id)arg1 
+
+  // instance methods
+  0x001f6657f54 -(id)copyWithZone:(id)arg1 
+  0x001f665862c -(id)init
+  0x001f66580fc -(BOOL)isEqual:(id)arg1 
+  0x001f6657e04 -(void).cxx_destruct
+  0x001f6658228 -(id)dataRepresentation
+  0x001f66582b0 -(id)initWithDataRepresentation:(id)arg1 
+  0x001f6658890 -(id)_serialNumber
+  0x001f6658898 -(unsigned long)_ECID
+  0x001f6658888 -(BOOL)_ECIDChecksDisabled
+  0x001f6657e10 -({Expected<NSDictionary *, NSError *>=(storage<NSDictionary *, NSError *>=c@@)B})encodeWithEncoder:(id)arg1 
+*/
+
 @objc protocol _VZMacMachineIdentifier {
-	static func _machineIdentifier(serialNumber: _VZMacSerialNumber) -> _VZMacMachineIdentifier
+	// _disableECIDChecks = 1
+	static func _machineIdentifierForVirtualMachineClone() -> _VZMacMachineIdentifier
+	static func _machineIdentifierForVirtualMachineClone(ECID: UInt, serialNumber: _VZMacSerialNumber?) -> _VZMacMachineIdentifier
+	static func _machineIdentifierForVirtualMachineClone(serialNumber: _VZMacSerialNumber?) -> _VZMacMachineIdentifier
+	
 	static func _machineIdentifier(ECID: UInt, serialNumber: _VZMacSerialNumber?) -> _VZMacMachineIdentifier
+	static func _machineIdentifier(serialNumber: _VZMacSerialNumber?) -> _VZMacMachineIdentifier
 }
 
 
@@ -131,6 +186,8 @@ class VirtualMachine: NSObject, VZVirtualMachineDelegate {
 	}
 
 	func install(ipsw: URL, diskSize: Int, ECID: UInt, serialNumber: String) async throws {
+		// ECID 0 is the cardinal value to indicate that we should generate one
+
 		FileManager.default.createFile(atPath: url.appendingPathComponent("disk.img").path, contents: nil)
 		let handle = try FileHandle(forWritingTo: url.appendingPathComponent("disk.img"))
 		try handle.truncate(atOffset: UInt64(diskSize) << 30)
@@ -139,6 +196,7 @@ class VirtualMachine: NSObject, VZVirtualMachineDelegate {
 		hardwareModel = image.mostFeaturefulSupportedConfiguration!.hardwareModel
 		metadata.hardwareModel = hardwareModel.dataRepresentation
 		if (serialNumber == "" && ECID == 0) {
+			// Let the framework generate a serial number and ECID through the public API
 			machineIdentifier = VZMacMachineIdentifier()
 		} else {
 			let machineIdentifierType = unsafeBitCast(NSClassFromString("VZMacMachineIdentifier")!, to: _VZMacMachineIdentifier.Type.self)
@@ -149,6 +207,7 @@ class VirtualMachine: NSObject, VZVirtualMachineDelegate {
 			} else {
 				_machineIdentifier = machineIdentifierType._machineIdentifier(serialNumber: _serialNumber!)
 			}
+			// Using an invalid serial will not work due to NSCoding - upon reopening, the serial number will be nil
             // let _machineIdentifier = unsafeBitCast(NSClassFromString("VZMacMachineIdentifier")!, to: _VZMacMachineIdentifier.Type.self)._machineIdentifier(serialNumber: FakeSerialNumber(string: "BBBBBBBBBBBB"))
 			machineIdentifier = unsafeBitCast(_machineIdentifier!, to: VZMacMachineIdentifier.self)
 		}

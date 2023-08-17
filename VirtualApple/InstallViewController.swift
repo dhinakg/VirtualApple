@@ -52,7 +52,7 @@ class InstallViewController: NSViewController, NSTextFieldDelegate {
 
 		let serialNumberLabel = NSTextField(labelWithString: "Serial Number:")
 		serialNumberTextField = NSTextField()
-        serialNumberTextField.placeholderString = "Optional"
+        serialNumberTextField.placeholderString = "Optional, requires private entitlement"
 		serialNumberTextField.delegate = self
 		let serialNumberStackView = NSStackView(fixedSizeViews: [serialNumberLabel, serialNumberTextField])
 		serialNumberStackView.alignment = .firstBaseline
@@ -90,7 +90,7 @@ class InstallViewController: NSViewController, NSTextFieldDelegate {
 			ipswPathControl.widthAnchor.constraint(equalToConstant: 240),
 			diskSizeTextField.widthAnchor.constraint(equalToConstant: 64),
 			ecidTextField.widthAnchor.constraint(equalToConstant: 240),
-			serialNumberTextField.widthAnchor.constraint(equalToConstant: 128),
+			serialNumberTextField.widthAnchor.constraint(equalToConstant: 240),
 			cancelButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 64),
 			installButton.leadingAnchor.constraint(equalToSystemSpacingAfter: cancelButton.trailingAnchor, multiplier: 1),
 			cancelButton.firstBaselineAnchor.constraint(equalTo: installButton.firstBaselineAnchor),
